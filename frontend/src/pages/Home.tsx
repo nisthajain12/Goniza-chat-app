@@ -166,6 +166,9 @@ const Home = () => {
     setAnchorEl(null);
   };
 
+  //CREATE ROOM
+  
+
   // -------------------------
   // SEARCH USERS
   // -------------------------
@@ -291,6 +294,7 @@ const Home = () => {
             size="small"
             variant="contained"
             color="success"
+            // onClick={createRoom}
           >
             Accept
           </Button>
