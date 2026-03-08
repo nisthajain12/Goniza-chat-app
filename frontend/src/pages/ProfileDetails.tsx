@@ -13,7 +13,7 @@ import {
 
 import { useEffect, useState, useContext } from "react";
 import Navbar from "../components/Navbar";
-import axios from "axios";
+import { api } from "../services/authService";
 import { AuthContext } from "../context/AuthContext";
 
 type UserProfile = {
@@ -33,10 +33,8 @@ const emptyProfile: UserProfile = {
 };
 
 const ProfileDetails = () => {
-  const auth = useContext(AuthContext);
-  if (!auth) return null;
 
-  const { token, setProfileComplete } = auth;
+  const { token, setProfileComplete } = useContext(AuthContext);
 
   const [profile, setProfile] = useState<UserProfile>(emptyProfile);
   const [isNewUser, setIsNewUser] = useState(false);
@@ -47,23 +45,25 @@ const ProfileDetails = () => {
   const [snackbarType, setSnackbarType] =
     useState<"success" | "error">("success");
 
-  // -------------------------
-  // FETCH PROFILE
-  // -------------------------
+  // fetching profile on load
   useEffect(() => {
-    if (token) fetchProfile();
+    if (!token) return;
+
+    fetchProfile();
   }, [token]);
 
   const fetchProfile = async () => {
     try {
-      const res = await axios.get(
-        "http://localhost:5000/api/profile/me",
-        {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
-      );
+
+      const res = await api.get("/profile/me");
+
+      if (!res.data.profile) {
+        setProfile(emptyProfile);
+        setIsNewUser(true);
+        setEditMode(true);
+        setProfileComplete(false);
+        return;
+      }
 
       setProfile({
         ...res.data.profile,
@@ -73,86 +73,77 @@ const ProfileDetails = () => {
 
       setIsNewUser(false);
       setEditMode(false);
-      setProfileComplete(true); // ✅ profile exists → remove red dot
+      setProfileComplete(true);
 
-    } catch (error) {
-      // New user → no profile exists
+    } catch {
       setProfile(emptyProfile);
       setIsNewUser(true);
       setEditMode(true);
-      setProfileComplete(false); // 🔴 show red dot
+      setProfileComplete(false);
     }
   };
 
-  // -------------------------
-  // CREATE PROFILE
-  // -------------------------
+  // creating profile
   const handleCreateProfile = async () => {
     try {
-      const payload = {
-        ...profile,
-        phone: Number(profile.phone),
-        pincode: Number(profile.pincode)
-      };
 
-      await axios.post(
-        "http://localhost:5000/api/profile/save",
-        payload,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
-      );
+      await api.post("/profile/save", profile);
 
-      setSnackbarMsg("Profile created successfully ✅");
+      setSnackbarMsg("Profile created successfully");
       setSnackbarType("success");
       setSnackbarOpen(true);
 
       setIsNewUser(false);
       setEditMode(false);
-      setProfileComplete(true); // ✅ REMOVE red dot immediately
+      setProfileComplete(true);
 
-    } catch (error) {
-      setSnackbarMsg("Profile creation failed ❌");
+    } catch {
+      setSnackbarMsg("Profile creation failed");
       setSnackbarType("error");
       setSnackbarOpen(true);
     }
   };
 
-  // -------------------------
-  // UPDATE PROFILE
-  // -------------------------
+  // updating profile
   const handleUpdateProfile = async () => {
     try {
-      const payload = {
-        ...profile,
-        phone: Number(profile.phone),
-        pincode: Number(profile.pincode)
-      };
 
-      await axios.put(
-        "http://localhost:5000/api/profile/update",
-        payload,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
-      );
+      await api.put("/profile/update", profile);
 
-      setSnackbarMsg("Profile updated successfully ✅");
+      setSnackbarMsg("Profile updated successfully");
       setSnackbarType("success");
       setSnackbarOpen(true);
 
       setEditMode(false);
-      setProfileComplete(true); // still complete
+      setProfileComplete(true);
 
-    } catch (error) {
-      setSnackbarMsg("Update failed ❌");
+    } catch {
+      setSnackbarMsg("Update failed");
       setSnackbarType("error");
       setSnackbarOpen(true);
     }
+  };
+  const getInitials = (name?: string) => {
+    if (!name) return "";
+
+    const words = name.trim().split(" ");
+
+    if (words.length === 1) {
+      return words[0][0].toUpperCase();
+    }
+
+    return (
+      words[0][0].toUpperCase() +
+      words[1][0].toUpperCase()
+    );
+  };
+
+  const stringToColor = (string: string) => {
+    let hash = 0;
+    for (let i = 0; i < string.length; i++) {
+      hash = string.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    return `hsl(${hash % 360}, 70%, 50%)`;
   };
 
   return (
@@ -163,30 +154,33 @@ const ProfileDetails = () => {
         <Box mt={4}>
           <Card elevation={5}>
             <CardContent>
-              <Box
-                display="flex"
-                flexDirection="column"
-                alignItems="center"
-                gap={2}
-              >
+
+              <Box display="flex" flexDirection="column" alignItems="center" gap={2}>
                 <Avatar
-                  src={profile.photo}
-                  sx={{ width: 100, height: 100 }}
-                />
+                  src={profile.photo || undefined}
+                  sx={{
+                    width: 100,
+                    height: 100,
+                    fontSize: 32,
+                    fontWeight: 600,
+                    bgcolor:
+                      profile.photo
+                        ? undefined
+                        : profile.name
+                          ? stringToColor(profile.name)
+                          : "#1976d2"
+                  }}
+                >
+                  {!profile.photo && getInitials(profile.name)}
+                </Avatar>
 
                 <Typography variant="h5" fontWeight="bold">
                   Profile Details
                 </Typography>
 
-                {/* ---------- FORM ---------- */}
                 {editMode && (
-                  <Box
-                    width="100%"
-                    display="flex"
-                    flexDirection="column"
-                    gap={2}
-                    mt={2}
-                  >
+                  <Box width="100%" display="flex" flexDirection="column" gap={2} mt={2}>
+
                     <TextField
                       label="Name"
                       required
@@ -239,10 +233,10 @@ const ProfileDetails = () => {
                     >
                       Save Profile
                     </Button>
+
                   </Box>
                 )}
 
-                {/* ---------- VIEW MODE ---------- */}
                 {!editMode && !isNewUser && (
                   <Box width="100%" mt={2}>
                     <Typography><b>Name:</b> {profile.name}</Typography>
@@ -260,13 +254,14 @@ const ProfileDetails = () => {
                     </Button>
                   </Box>
                 )}
+
               </Box>
+
             </CardContent>
           </Card>
         </Box>
       </Container>
 
-      {/* SNACKBAR */}
       <Snackbar
         open={snackbarOpen}
         autoHideDuration={3000}

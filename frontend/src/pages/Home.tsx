@@ -1,4 +1,5 @@
 import Navbar from "../components/Navbar";
+import { socket } from "../socket";
 
 import {
   Box,
@@ -11,454 +12,787 @@ import {
   TextField,
   IconButton,
   Divider,
-  Paper,
   ListItemButton,
   Button,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  ListItem,
-  ListItemSecondaryAction,
-  Menu,
-  MenuItem
-
+  Checkbox
 } from "@mui/material";
 
+import AddIcon from "@mui/icons-material/Add";
+import BlockIcon from "@mui/icons-material/Block";
+import EditIcon from "@mui/icons-material/Edit";
+import GroupAddIcon from "@mui/icons-material/GroupAdd";
 import SendIcon from "@mui/icons-material/Send";
 import AttachFileIcon from "@mui/icons-material/AttachFile";
-import EmojiEmotionsIcon from "@mui/icons-material/EmojiEmotions";
-
 import Snackbar from "@mui/material/Snackbar";
 import Alert from "@mui/material/Alert";
-import axios from "axios";
-import { useContext, useEffect, useState } from "react";
+
+import { useContext, useEffect, useState, useRef } from "react";
 import { AuthContext } from "../context/AuthContext";
-
-import socket from "../services/socket";
-import { createConnection, getInvitationApi } from "../services/connection";
-
-
+import { api } from "../services/authService";
+import {
+  createConnection,
+  getInvitationApi,
+  getAcceptedConnectionsApi
+} from "../services/connection";
 
 const Home = () => {
-  const { token } = useContext(AuthContext);
+  const { token, user } = useContext(AuthContext);
 
   const [selectedUser, setSelectedUser] = useState<any>(null);
-  const [myProfile, setMyProfile] = useState<any>(null);
-
   const [search, setSearch] = useState("");
   const [searchResults, setSearchResults] = useState<any[]>([]);
 
-  const [showWarning, setShowWarning] = useState(false);
-
-  // 🔥 SOCKET MESSAGE STATES
-  const [messages, setMessages] = useState<any[]>([]);
-  const [newMessage, setNewMessage] = useState("");
-
-  //this is for list of invitation list 
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [invitations, setInvitations] = useState<any[]>([]);
+  const [showInvitations, setShowInvitations] = useState(false);
+
+  const [acceptedConnections, setAcceptedConnections] = useState<any[]>([]);
+  const [selectedParticipants, setSelectedParticipants] = useState<string[]>([]);
+  const [showParticipantSelection, setShowParticipantSelection] =
+    useState(false);
+
+  const [roomName, setRoomName] = useState("");
+  const [rooms, setRooms] = useState<any[]>([]);
+  const [showRooms, setShowRooms] = useState(false);
+
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState("");
+  const [snackbarType, setSnackbarType] =
+    useState<"success" | "error">("success");
 
 
+  const [connectionStatus, setConnectionStatus] = useState<
+    "none" | "sent" | "exists"
+  >("none");
 
-  const getId = (id: any) => id?.toString();
+  const [selectedRoom, setSelectedRoom] = useState<any>(null);
+  const [messageInput, setMessageInput] = useState("");
+  const [messages, setMessages] = useState<any[]>([]);
+  const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
+  console.log("AuthContext user:", user);
 
-  // -------------------------
-  // CHECK PROFILE
-  // -------------------------
   useEffect(() => {
-    const checkProfile = async () => {
-      if (!token) return;
-      try {
-        const res = await axios.get(
-          "http://localhost:5000/api/profile/me",
-          {
-            headers: { Authorization: `Bearer ${token}` }
-          }
-        );
-
-        setMyProfile(res.data.profile);
-
-        if (res.data.profileComplete === false) {
-          setShowWarning(true);
-        } else {
-          setShowWarning(false);
-        }
-
-      } catch (error) {
-        setShowWarning(true);
-        setMyProfile(null);
-      }
-    };
-
-    if (token) {
-      checkProfile();
+    if (!search.trim()) {
+      setSearchResults([]);
+      return;
     }
-  }, [token]);
 
-  // -------------------------
-  // 🔥 SOCKET CONNECT & JOIN
-  // -------------------------
-  useEffect(() => {
-    if (!myProfile?.userId) return;
-
-    socket.connect();
-    socket.emit("join", myProfile.userId);
-
-    return () => {
-      socket.disconnect();
-    };
-  }, [myProfile]);
-
-  // -------------------------
-  // 🔥 RECEIVE MESSAGES
-  // -------------------------
-  useEffect(() => {
-    socket.on("receiveMessage", (data) => {
-      setMessages((prev) => [
-        ...prev,
-        {
-          senderId: data.senderId,
-          text: data.message
-        }
-      ]);
-    });
-
-    return () => {
-      socket.off("receiveMessage");
-    };
-  }, []);
-
-  //connection create
-  const sendRequest = async (id: string) => {
-    console.log(id, "this is id")
-    const payload = {
-      receiverId: id,
-      status: "pending",
-      message: "hello, hi"
-    }
-    if (!token) return;
-
-
-    try {
-      const res = await createConnection(payload, token)
-
-    } catch (error) {
-      console.log(error)
-    }
-  }
-
-  //invitation list 
-  const invitationList = async (event: React.MouseEvent<HTMLButtonElement>) => {
-    setAnchorEl(event.currentTarget);
-    if(!token) return;
-    try {
-      const res = await getInvitationApi(token)
-      setInvitations(res.data.invitations || []);
-
-
-    } catch (error) {
-      console.log(error)
-    }
-  };
-  const handleClose = () => {
-    setAnchorEl(null);
-  };
-
-  //CREATE ROOM
-  
-
-  // -------------------------
-  // SEARCH USERS
-  // -------------------------
-  useEffect(() => {
     const fetchUsers = async () => {
-      if (!search.trim()) {
-        setSearchResults([]);
-        return;
-      }
-
       try {
-        const res = await axios.get(
-          `http://localhost:5000/api/profile/search?query=${search}`,
-          {
-            headers: { Authorization: `Bearer ${token}` }
-          }
+        const res = await api.get(
+          `/profile/search?query=${search}`
         );
-
         setSearchResults(res.data);
-      } catch (error) {
+      } catch {
         setSearchResults([]);
       }
     };
 
     fetchUsers();
-  }, [search, token]);
+  }, [search]);
 
-  // -------------------------
-  // 🔥 SEND MESSAGE
-  // -------------------------
-  const handleSendMessage = () => {
-    if (!newMessage.trim()) return;
-    if (!selectedUser?.userId) {
-      console.error("Receiver userId missing");
-      return;
-    }
-    if (!myProfile?.userId) {
-      console.error("Sender userId missing");
-      return;
-    }
+  useEffect(() => {
+    if (!token) return;
 
+    const fetchInvitations = async () => {
+      try {
+        const res = await getInvitationApi();
+        setInvitations(res.invitations || []);
+      } catch {
+        setInvitations([]);
+      }
+    };
+    const fetchRooms = async () => {
+      try {
+        const res = await api.get("/room/myRooms");
+        setRooms(res.data.rooms || []);
+      } catch {
+        setRooms([]);
+      }
+    };
 
-    socket.emit("sendMessage", {
-      senderId: getId(myProfile.userId),
-      receiverId: getId(selectedUser.userId),
-      message: newMessage
+    fetchRooms();
+
+    fetchInvitations();
+  }, [token]);
+
+  useEffect(() => {
+
+    socket.off("receive_message");
+
+    socket.on("receive_message", (message) => {
+
+      const formattedMessage = {
+        ...message,
+        senderId: message.senderId?.toString(),
+        senderName: message.senderName || user?.name
+      };
+
+      setMessages((prev) => [...prev, formattedMessage]);
+
     });
 
-    setMessages((prev) => [
-      ...prev,
-      {
-        senderId: getId(myProfile.userId),
-        text: newMessage
-      }
-    ]);
+  }, [user]);
 
-    setNewMessage("");
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  //  RESET CONNECTION STATUS WHEN USER CHANGES
+  useEffect(() => {
+    if (selectedUser) {
+      setConnectionStatus("none");
+    }
+  }, [selectedUser]);
+
+  const fetchAcceptedConnections = async () => {
+    try {
+      const res = await getAcceptedConnectionsApi();
+      setAcceptedConnections(res.connections || []);
+      setShowParticipantSelection(true);
+    } catch {
+      setAcceptedConnections([]);
+    }
   };
+
+  //inital function
+  const getInitials = (name: string) => {
+    if (!name) return "";
+
+    const words = name.trim().split(" ");
+
+    if (words.length === 1) {
+      return words[0][0].toUpperCase();
+    }
+
+    return (
+      words[0][0].toUpperCase() +
+      words[1][0].toUpperCase()
+    );
+  };
+
+  const handleToggleParticipant = (userId: string) => {
+    setSelectedParticipants((prev) =>
+      prev.includes(userId)
+        ? prev.filter((id) => id !== userId)
+        : [...prev, userId]
+    );
+  };
+
+  const handleCreateRoom = async () => {
+    if (!roomName || selectedParticipants.length === 0) return;
+
+    try {
+      await api.post("/room/createRoom", {
+        participants: selectedParticipants,
+        roomName
+      });
+
+      setSnackbarMessage("Group created successfully");
+      setSnackbarType("success");
+      setSnackbarOpen(true);
+
+      setShowParticipantSelection(false);
+      setSelectedParticipants([]);
+      setRoomName("");
+    } catch {
+      setSnackbarMessage("Failed to create group");
+      setSnackbarType("error");
+      setSnackbarOpen(true);
+    }
+  };
+
+  const handleRespond = async (
+    connectionId: string,
+    status: "accepted" | "rejected"
+  ) => {
+    try {
+      await api.patch(
+        `/connection/respondToInvitation/${connectionId}`,
+        { status }
+      );
+
+      setInvitations((prev) =>
+        prev.filter((inv) => inv._id !== connectionId)
+      );
+
+      setSnackbarMessage(
+        status === "accepted"
+          ? "Connection accepted"
+          : "Connection rejected"
+      );
+      setSnackbarType("success");
+      setSnackbarOpen(true);
+    } catch {
+      setSnackbarMessage("Failed to respond");
+      setSnackbarType("error");
+      setSnackbarOpen(true);
+    }
+  };
+
+  const handleSendConnection = async () => {
+    if (!selectedUser) return;
+
+    try {
+      await createConnection({
+        receiverId: selectedUser.user,
+        message: "Let's connect!"
+      });
+
+      setConnectionStatus("sent");
+
+      setSnackbarMessage("Connection request sent");
+      setSnackbarType("success");
+      setSnackbarOpen(true);
+
+    } catch (error: any) {
+      const message =
+        error?.response?.data?.message || "Something went wrong";
+
+      if (message === "Connection already exists") {
+        setConnectionStatus("exists");
+      }
+
+      setSnackbarMessage(message);
+      setSnackbarType("error");
+      setSnackbarOpen(true);
+    }
+  };
+  const handleRoomClick = (room: any) => {
+    setSelectedRoom(room);
+    setSelectedUser(null);
+
+    fetchMessages(room._id);
+    socket.emit("join_room", room._id);
+  };
+  const handleSendMessage = async () => {
+    if (!messageInput.trim() || !selectedRoom) return;
+
+    try {
+      await api.post("/message/send", {
+        roomId: selectedRoom._id,
+        body: messageInput
+      });
+
+      setMessageInput("");
+    } catch {
+      setSnackbarMessage("Failed to send message");
+      setSnackbarType("error");
+      setSnackbarOpen(true);
+    }
+  };
+  const fetchMessages = async (roomId: string) => {
+    try {
+      const res = await api.get(`/message/room/${roomId}`);
+      setMessages(res.data.messages || []);
+    } catch {
+      setMessages([]);
+    }
+  };
+
+  const loggedUserId = user?.user?.toString();
 
   return (
     <>
       <Navbar />
 
-      {/* MAIN CONTAINER */}
-      <Box
-        display="flex"
-        minHeight="calc(100vh - 64px)"
-        overflow="hidden"
-      >
-
-        {/* SIDEBAR */}
-        <Box width={300} >
-          <Card sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
-            <TextField
-              placeholder="Search users..."
-              size="small"
-              fullWidth
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              sx={{ mb: 1 }}
-            />
-            <Button
-              fullWidth
-              variant="contained"
-              onClick={
-                invitationList
-              }
-              sx={{
-                mb: 1,
-                backgroundColor: "#1976d2",
-                textTransform: "none",
-                fontWeight: 500,
-                "&:hover": {
-                  backgroundColor: "#115293"
-                }
-              }}
-            >
-              Invitations
-            </Button>
-            <Menu
-  anchorEl={anchorEl}
-  open={Boolean(anchorEl)}
-  onClose={handleClose}
->
-  {invitations.length === 0 ? (
-    <MenuItem>No Invitations</MenuItem>
-  ) : (
-    invitations.map((invite) => (
-      <MenuItem key={invite._id} sx={{ display: "flex", flexDirection: "column", alignItems: "flex-start" }}>
-        
-        <Box display="flex" alignItems="center" width="100%">
-          <ListItemAvatar>
-            <Avatar src={invite.senderId?.photo}>
-              {invite.senderId?.name?.charAt(0)}
-            </Avatar>
-          </ListItemAvatar>
-
-          <ListItemText primary={invite.senderId?.name || "Unknown User"} />
-        </Box>
-
-        <Box display="flex" gap={1} mt={1}>
-          <Button
-            size="small"
-            variant="contained"
-            color="success"
-            // onClick={createRoom}
-          >
-            Accept
-          </Button>
-
-          <Button
-            size="small"
-            variant="outlined"
-            color="error"
-          >
-            Reject
-          </Button>
-        </Box>
-
-      </MenuItem>
-    ))
-  )}
-</Menu>
-
-
-            <Divider />
-
-            <Box flex={1} overflow="auto">
-              <List>
-                {searchResults.length > 0 ? (
-                  searchResults.map((user) => {
-                    console.log(user)
-                    return (
-                      <ListItemButton
-                        key={user._id}
-                        onClick={() => {
-                          setSelectedUser(user);
-                          setMessages([]);
-                          sendRequest(user.userId);
-                        }}
-                      >
-                        <ListItemAvatar>
-                          <Avatar src={user.photo}>
-                            {user.name.charAt(0)}
-                          </Avatar>
-                        </ListItemAvatar>
-                        <ListItemText primary={user.name} />
-                      </ListItemButton>
-                    )
-
-                  })
-                ) : (
-                  <Typography
-                    variant="body2"
-                    align="center"
-                    mt={2}
-                    color="text.secondary"
-                  >
-                    Search users to start chat
-                  </Typography>
-                )}
-              </List>
-            </Box>
-          </Card>
-        </Box>
-
-        {/* CHAT AREA */}
-        <Box flex={1} >
+      <Box display="flex" minHeight="calc(100vh - 64px)">
+        {/* Sidebar */}
+        <Box width={300}>
           <Card
             sx={{
               height: "100%",
+              display: "flex",
+              flexDirection: "column",
+              px: 1,
+              pt: 1
+            }}
+          >
+            <Box display="flex" alignItems="center" gap={1} mb={1}>
+              {!showParticipantSelection && (
+                <>
+                  <TextField
+                    placeholder="Search users..."
+                    size="small"
+                    fullWidth
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                  />
+
+                  <IconButton onClick={fetchAcceptedConnections}>
+                    <AddIcon />
+                  </IconButton>
+                </>
+              )}
+
+              {showParticipantSelection && (
+                <Typography fontWeight="bold">
+                  Select Participants
+                </Typography>
+              )}
+            </Box>
+
+            <Divider />
+
+            {/* Search Results */}
+            {searchResults.length > 0 && (
+              <Box>
+                <Typography variant="body2" sx={{ px: 1, mt: 1, fontWeight: "bold" }}>
+                  Search Results
+                </Typography>
+
+                <List>
+                  {searchResults.map((user) => (
+                    <ListItemButton
+                      key={user.user}
+                      onClick={() => setSelectedUser(user)}
+                    >
+                      <ListItemAvatar>
+                        <Avatar sx={{ bgcolor: "#1976d2", fontWeight: 600 }}>
+                          {getInitials(user.name)}
+                        </Avatar>
+                      </ListItemAvatar>
+
+                      <ListItemText primary={user.name} />
+                    </ListItemButton>
+                  ))}
+                </List>
+
+                <Divider />
+              </Box>
+            )}
+
+            {/* PARTICIPANT SELECTION MODE */}
+            {showParticipantSelection ? (
+              <>
+                <Box flex={1} overflow="auto">
+                  {acceptedConnections.length === 0 ? (
+                    <Typography
+                      variant="body2"
+                      sx={{ textAlign: "center", mt: 2 }}
+                    >
+                      No accepted connections
+                    </Typography>
+                  ) : (
+                    <List>
+                      {acceptedConnections.map((user) => (
+                        <ListItemButton
+                          key={user.userId}
+                          onClick={() =>
+                            handleToggleParticipant(user.userId)
+                          }
+                        >
+                          <ListItemAvatar>
+                            <Avatar>
+                              {user.name?.charAt(0)}
+                            </Avatar>
+                          </ListItemAvatar>
+
+                          <ListItemText primary={user.name} />
+
+                          <Checkbox
+                            checked={selectedParticipants.includes(
+                              user.userId
+                            )}
+                          />
+                        </ListItemButton>
+                      ))}
+                    </List>
+                  )}
+                </Box>
+
+                <Divider />
+
+                <Box p={1}>
+                  <TextField
+                    placeholder="Enter room name"
+                    size="small"
+                    fullWidth
+                    value={roomName}
+                    onChange={(e) =>
+                      setRoomName(e.target.value)
+                    }
+                    sx={{ mb: 1 }}
+                  />
+
+                  <Box display="flex" gap={1}>
+                    <Button
+                      variant="outlined"
+                      fullWidth
+                      onClick={() => {
+                        setShowParticipantSelection(false);
+                        setSelectedParticipants([]);
+                      }}
+                    >
+                      Cancel
+                    </Button>
+
+                    <Button
+                      variant="contained"
+                      fullWidth
+                      disabled={
+                        selectedParticipants.length === 0 ||
+                        !roomName
+                      }
+                      onClick={handleCreateRoom}
+                    >
+                      Create
+                    </Button>
+                  </Box>
+                </Box>
+              </>
+            ) : (
+              <>
+                <Box mt={1}>
+                  <Box
+                    display="flex"
+                    justifyContent="space-between"
+                    sx={{
+                      cursor: "pointer",
+                      px: 1,
+                      py: 0.5,
+                      borderRadius: 1,
+                      "&:hover": {
+                        backgroundColor: "#f5f5f5"
+                      }
+                    }}
+                    onClick={() =>
+                      setShowInvitations(!showInvitations)
+                    }
+                  >
+                    <Typography fontWeight="bold">
+                      Invitations
+                    </Typography>
+                    <Typography>
+                      {showInvitations ? "▲" : "▼"}
+                    </Typography>
+                  </Box>
+
+                  {showInvitations &&
+                    (invitations.length === 0 ? (
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          textAlign: "center",
+                          mt: 1,
+                          color: "gray"
+                        }}
+                      >
+                        No pending invitations
+                      </Typography>
+                    ) : (
+                      invitations.map((invite) => (
+                        <Box
+                          key={invite._id}
+                          display="flex"
+                          justifyContent="space-between"
+                          alignItems="center"
+                          p={1}
+                        >
+                          <Typography variant="body2">
+                            {invite.senderName}
+                          </Typography>
+
+                          <Box display="flex" gap={1}>
+                            <Button
+                              size="small"
+                              color="success"
+                              variant="contained"
+                              onClick={() =>
+                                handleRespond(
+                                  invite._id,
+                                  "accepted"
+                                )
+                              }
+                            >
+                              Accept
+                            </Button>
+
+                            <Button
+                              size="small"
+                              color="error"
+                              variant="outlined"
+                              onClick={() =>
+                                handleRespond(
+                                  invite._id,
+                                  "rejected"
+                                )
+                              }
+                            >
+                              Reject
+                            </Button>
+                          </Box>
+                        </Box>
+                      ))
+                    ))}
+                </Box>
+                <Box mt={1}>
+                  <Box
+                    display="flex"
+                    justifyContent="space-between"
+                    sx={{
+                      cursor: "pointer",
+                      px: 1,
+                      py: 0.5,
+                      borderRadius: 1,
+                      "&:hover": {
+                        backgroundColor: "#f5f5f5"
+                      }
+                    }}
+                    onClick={() => setShowRooms(!showRooms)}
+                  >
+                    <Typography fontWeight="bold">
+                      Chats
+                    </Typography>
+                    <Typography>
+                      {showRooms ? "▲" : "▼"}
+                    </Typography>
+                  </Box>
+
+                  {showRooms &&
+                    (rooms.length === 0 ? (
+                      <Typography
+                        variant="body2"
+                        sx={{ textAlign: "center", mt: 1, color: "gray" }}
+                      >
+                        No chats yet
+                      </Typography>
+                    ) : (
+                      <List>
+                        {rooms.map((room) => (
+                          <ListItemButton
+                            key={room._id}
+                            selected={selectedRoom?._id === room._id}
+                            onClick={() => handleRoomClick(room)}
+                            sx={{
+                              borderRadius: 2,
+                              mx: 1,
+                              my: 0.5,
+                              transition: "0.2s",
+                              "&.Mui-selected": {
+                                backgroundColor: "#e3f2fd"
+                              }
+                            }}
+                          >
+                            <ListItemText
+                              primary={room.displayName}
+                            />
+                          </ListItemButton>
+                        ))}
+                      </List>
+                    ))}
+                </Box>
+              </>
+            )}
+          </Card>
+        </Box>
+
+        {/* Chat Section */}
+        <Box flex={1}>
+          <Card
+            sx={{
+              height: "calc(100vh - 64px)",
               display: "flex",
               flexDirection: "column"
             }}
           >
             {/* HEADER */}
-            <Box p={2}>
-              <Typography variant="h6" fontWeight="bold">
-                {selectedUser
-                  ? getId(selectedUser.userId) === getId(myProfile?.userId)
-                    ? `${selectedUser.name} (me)`
-                    : selectedUser.name
-                  : "Select a user"}
-              </Typography>
-
-              <Divider />
-            </Box>
-
-            {/* MESSAGES */}
             <Box
-              flex={1}
-              px={2}
-              overflow="auto"
+              p={2}
               display="flex"
-              flexDirection="column"
-
+              justifyContent="space-between"
+              alignItems="center"
+              borderBottom="1px solid #eee"
             >
-              {selectedUser ? (
-                messages.length > 0 ? (
-                  messages.map((msg, idx) => (
-                    <Paper
-                      key={idx}
+              <Box display="flex" alignItems="center" gap={2}>
+                {(selectedUser || selectedRoom) && (
+                  <Box position="relative">
+                    <Avatar sx={{ bgcolor: "#1976d2", fontWeight: 600 }}>
+                      {selectedUser
+                        ? getInitials(selectedUser.name)
+                        : selectedRoom
+                          ? getInitials(selectedRoom.displayName)
+                          : ""}
+                    </Avatar>
+
+                    {/* Online dot */}
+                    <Box
                       sx={{
-                        p: 1.5,
-                        maxWidth: "60%",
-                        alignSelf:
-                          msg.senderId === myProfile?.userId
-                            ? "flex-end"
-                            : "flex-start"
+                        width: 10,
+                        height: 10,
+                        borderRadius: "50%",
+                        backgroundColor: "green",
+                        position: "absolute",
+                        bottom: 0,
+                        right: 0,
+                        border: "2px solid white"
                       }}
-                    >
-                      {msg.text}
-                    </Paper>
-                  ))
-                ) : (
-                  <Paper sx={{ p: 2, color: "#666" }}>
-                    Start chatting with {selectedUser.name}
-                  </Paper>
-                )
-              ) : (
-                <Paper sx={{ p: 2, color: "#666" }}>
-                  Your chats will be displayed here
-                </Paper>
+                    />
+                  </Box>
+                )}
+
+                <Box>
+                  <Typography fontWeight="bold">
+                    {selectedUser
+                      ? selectedUser.name
+                      : selectedRoom
+                        ? selectedRoom.displayName
+                        : "Select a user"}
+                  </Typography>
+
+                  {(selectedUser || selectedRoom) && (
+                    <Typography variant="caption" color="gray">
+                      Online
+                    </Typography>
+                  )}
+                </Box>
+              </Box>
+
+              {/* Personal Chat (search user) */}
+              {selectedUser && connectionStatus === "none" && (
+                <Button
+                  variant="contained"
+                  size="small"
+                  onClick={handleSendConnection}
+                >
+                  Connect
+                </Button>
+              )}
+
+              {selectedUser && connectionStatus === "sent" && (
+                <Button variant="outlined" size="small" disabled>
+                  Request Sent
+                </Button>
+              )}
+
+              {selectedUser && connectionStatus === "exists" && (
+                <Button variant="outlined" size="small" disabled>
+                  Connection Exists
+                </Button>
+              )}
+
+              {/* Personal Room → Block */}
+              {selectedRoom && selectedRoom.roomType === "personal" && (
+                <IconButton>
+                  <BlockIcon />
+                </IconButton>
+              )}
+
+              {/* Group Room → Edit + Add */}
+              {selectedRoom && selectedRoom.roomType === "group" && (
+                <Box>
+                  <IconButton>
+                    <EditIcon />
+                  </IconButton>
+                  <IconButton>
+                    <GroupAddIcon />
+                  </IconButton>
+                </Box>
               )}
             </Box>
 
-            {/* INPUT BAR — ALWAYS VISIBLE */}
+            {/* MESSAGE AREA (SCROLLABLE ONLY HERE) */}
             <Box
-              p={1}
-              display="flex"
-              alignItems="center"
-              gap={1}
-              borderTop="1px solid #e0e0e0"
-              flexShrink={0}
+              flex={1}
+              overflow="auto"
+              p={2}
+              sx={{
+                backgroundColor: "#f5f7fb",
+                display: "flex",
+                flexDirection: "column",
+                gap: 1
+              }}
             >
-              <IconButton>
-                <AttachFileIcon />
-              </IconButton>
+              {messages.map((msg) => {
 
-              <TextField
-                fullWidth
-                placeholder="Type a message..."
-                size="small"
-                value={newMessage}
-                onChange={(e) => setNewMessage(e.target.value)}
-              />
+                const senderId = msg.senderId?.toString();
+                const isSender = senderId === loggedUserId;
 
-              <IconButton>
-                <EmojiEmotionsIcon />
-              </IconButton>
+                return (
+                  <Box
+                    key={msg._id}
+                    sx={{
+                      display: "flex",
+                      justifyContent: isSender ? "flex-end" : "flex-start",
+                      mb: 1
+                    }}
+                  >
 
-              <IconButton color="primary" onClick={handleSendMessage}>
-                <SendIcon />
-              </IconButton>
+                    <Box
+                      sx={{
+                        px: 2,
+                        py: 1,
+                        borderRadius: 2,
+                        maxWidth: "60%",
+                        backgroundColor: isSender ? "#1976d2" : "#e0e0e0",
+                        color: isSender ? "white" : "black"
+                      }}
+                    >
+
+                      {!isSender && (
+                        <Typography
+                          variant="caption"
+                          sx={{ fontWeight: 600 }}
+                        >
+                          {msg.senderName}
+                        </Typography>
+                      )}
+
+                      <Typography variant="body2">
+                        {msg.body}
+                      </Typography>
+
+                    </Box>
+
+                  </Box>
+                );
+              })}
+              <div ref={messagesEndRef} />
+
             </Box>
+
+            {/* MESSAGE INPUT BAR */}
+            {(selectedUser || selectedRoom) && (
+              <Box
+                p={2}
+                display="flex"
+                alignItems="center"
+                gap={1}
+                borderTop="1px solid #eee"
+              >
+                <TextField
+                  fullWidth
+                  size="small"
+                  placeholder="Type a message..."
+                  value={messageInput}
+                  onChange={(e) => setMessageInput(e.target.value)}
+                />
+                <IconButton>
+                  <AttachFileIcon />
+                </IconButton>
+                <IconButton color="primary" onClick={handleSendMessage}>
+                  <SendIcon />
+                </IconButton>
+              </Box>
+            )}
           </Card>
         </Box>
       </Box>
-      
 
-
-      {/* WARNING */}
       <Snackbar
-        open={showWarning}
-        autoHideDuration={5000}
-        onClose={() => setShowWarning(false)}
-        anchorOrigin={{ vertical: "top", horizontal: "center" }}
+        open={snackbarOpen}
+        autoHideDuration={3000}
+        onClose={() => setSnackbarOpen(false)}
+        anchorOrigin={{
+          vertical: "top",
+          horizontal: "right"
+        }}
       >
-        <Alert severity="warning">
-          Please complete your profile details
+        <Alert
+          severity={snackbarType}
+          variant="filled"
+        >
+          {snackbarMessage}
         </Alert>
       </Snackbar>
     </>
@@ -466,4 +800,3 @@ const Home = () => {
 };
 
 export default Home;
-

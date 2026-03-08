@@ -10,31 +10,18 @@ import {
 import PublicNavbar from "../components/PublicNavbar";
 import Footer from "../components/Footer";
 import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutline";
-
 import { useNavigate } from "react-router-dom";
-import { io } from "socket.io-client";
-
-
-//
 
 const LandingPage = () => {
 
   const navigate = useNavigate();
-  const socket = io("http://localhost:5000");
-socket.on("connect", () => {
-  console.log(socket.id); // x8WIv7-mJelg7on_ALbx
-  console.log("hello");
-});
 
   return (
     <Box sx={{ background: "#ffffff", minHeight: "100vh" }}>
 
-      
       <PublicNavbar />
 
-      
       <Container maxWidth="md">
-
         <Box
           display="flex"
           flexDirection="column"
@@ -43,18 +30,9 @@ socket.on("connect", () => {
           mt={8}
         >
 
-          <ChatBubbleOutlineIcon
-            sx={{
-              fontSize: 70,
-              color: "#1976d2"
-            }}
-          />
+          <ChatBubbleOutlineIcon sx={{ fontSize: 70, color: "#1976d2" }} />
 
-          <Typography
-            variant="h3"
-            fontWeight="bold"
-            mt={2}
-          >
+          <Typography variant="h3" fontWeight="bold" mt={2}>
             GONIZA
           </Typography>
 
@@ -69,7 +47,6 @@ socket.on("connect", () => {
           </Typography>
 
           <Box mt={4} display="flex" gap={2}>
-
             <Button
               variant="contained"
               size="large"
@@ -85,23 +62,18 @@ socket.on("connect", () => {
             >
               Login
             </Button>
-
           </Box>
 
         </Box>
-
       </Container>
 
-      
       <Container maxWidth="lg">
-
         <Box
           display="grid"
           gridTemplateColumns={{ xs: "1fr", md: "repeat(3, 1fr)" }}
           gap={3}
           mt={7}
         >
-
           {[
             {
               title: "Real-Time Messaging",
@@ -116,7 +88,6 @@ socket.on("connect", () => {
               desc: "Personalized profiles with editable user information."
             }
           ].map((item, index) => (
-
             <Card
               key={index}
               sx={{
@@ -125,29 +96,18 @@ socket.on("connect", () => {
               }}
             >
               <CardContent>
-
                 <Typography variant="h6" fontWeight="bold">
                   {item.title}
                 </Typography>
-
-                <Typography
-                  variant="body2"
-                  mt={1}
-                  color="text.secondary"
-                >
+                <Typography variant="body2" mt={1} color="text.secondary">
                   {item.desc}
                 </Typography>
-
               </CardContent>
             </Card>
-
           ))}
-
         </Box>
-
       </Container>
 
-      
       <Footer />
 
     </Box>

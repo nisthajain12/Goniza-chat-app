@@ -1,25 +1,44 @@
-import { api } from "./authService"
-type payload = {
-    receiverId: string, status: string, message: string
-}
+import { api } from "./authService";
 
-// create
-export const createConnection = async (formData: payload, token: string) => {
-    const response = await api.post("/connection/createConnection", formData, {
-        headers: {
-            Authorization: `Bearer ${token}`
-        }
-    });
-    return response.data;
+type Payload = {
+  receiverId: string;
+  message: string;
 };
 
-//GET API
-export const getInvitationApi= async(token :string)=>{
-    const response=await api.get("/connection/getInvitations",{
-        headers: {
-            Authorization: `Bearer ${token}`
-        }
-
-    });
-    return response.data;
+type Status ={
+  status: string
 }
+
+// creating connection
+export const createConnection = async (formData: Payload) => {
+  const response = await api.post(
+    "/connection/createConnection",
+    formData
+  );
+  return response.data;
+};
+
+// fetching invitations
+export const getInvitationApi = async () => {
+  const response = await api.get(
+    "/connection/getInvitations"
+  );
+  return response.data;
+};
+
+export const respondToInvitation = async (
+  connectionId: string,
+  status: "accepted" | "rejected"
+) => {
+  const response = await api.patch(
+    `/connection/respondToInvitation/${connectionId}`,
+    { status }
+  );
+
+  return response.data;
+};
+
+export const getAcceptedConnectionsApi = async () => {
+  const response = await api.get("/connection/accepted");
+  return response.data;
+};
