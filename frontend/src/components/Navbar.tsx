@@ -24,7 +24,7 @@ const Navbar = () => {
 
   if (!auth) return null;
 
-  const { token, setToken, profileComplete, user } = auth;
+  const {  setToken, profileComplete, user } = auth;
 
   const handleLogout = () => {
     setToken(null);

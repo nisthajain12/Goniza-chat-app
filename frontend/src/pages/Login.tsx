@@ -15,10 +15,8 @@ import { loginUser } from "../services/authService";
 import { AuthContext } from "../context/AuthContext";
 import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutline";
 
-
-import bgImage from "../assets/login-bg.png"; // <-- YOUR IMAGE
 import bgTmageLeft from "../assets/login-bg-f.png"
-import { lightBlue } from "@mui/material/colors";
+
 
 const Login = () => {
 
@@ -33,7 +31,6 @@ const Login = () => {
   const [snackbarType, setSnackbarType] =
     useState<"success" | "error">("error");
 
-  const [showRegisterBtn, setShowRegisterBtn] = useState(false);
 
   // -------------------
   // LOGIN HANDLER
@@ -71,11 +68,7 @@ const Login = () => {
       setSnackbarType("error");
       setSnackbarOpen(true);
 
-      if (msg === "User not found") {
-        setShowRegisterBtn(true);
-      } else {
-        setShowRegisterBtn(false);
-      }
+      
     }
   };
 

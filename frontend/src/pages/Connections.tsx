@@ -43,6 +43,9 @@ const Connections = () => {
 
       setConnections(accepted.connections || []);
       setInvitations(invites.invitations || []);
+
+      setRejected([]);
+      //user when actually will reject, update that later
     } catch {
       console.log("Failed to fetch connections");
     }

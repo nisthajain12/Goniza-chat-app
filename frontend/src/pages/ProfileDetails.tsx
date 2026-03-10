@@ -45,13 +45,6 @@ const ProfileDetails = () => {
   const [snackbarType, setSnackbarType] =
     useState<"success" | "error">("success");
 
-  // fetching profile on load
-  useEffect(() => {
-    if (!token) return;
-
-    fetchProfile();
-  }, [token]);
-
   const fetchProfile = async () => {
     try {
 
@@ -82,6 +75,14 @@ const ProfileDetails = () => {
       setProfileComplete(false);
     }
   };
+  // fetching profile on load
+  useEffect(() => {
+    if (!token) return;
+
+    fetchProfile();
+  }, [token, fetchProfile]);
+
+
 
   // creating profile
   const handleCreateProfile = async () => {

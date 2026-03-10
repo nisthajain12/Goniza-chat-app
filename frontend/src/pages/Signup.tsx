@@ -14,7 +14,6 @@ import { useState } from "react";
 import { registerUser } from "../services/authService";
 import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutline";
 
-import bgImage from "../assets/login-bg.png";
 import bgTmageLeft from "../assets/login-bg-f.png";
 
 const Signup = () => {

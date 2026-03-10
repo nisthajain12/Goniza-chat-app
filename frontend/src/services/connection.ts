@@ -5,9 +5,6 @@ type Payload = {
   message: string;
 };
 
-type Status ={
-  status: string
-}
 
 // creating connection
 export const createConnection = async (formData: Payload) => {
