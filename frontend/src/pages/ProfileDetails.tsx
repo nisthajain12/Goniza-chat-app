@@ -77,11 +77,11 @@ const ProfileDetails = () => {
   };
   // fetching profile on load
   useEffect(() => {
-    if (!token) return;
+  if (!token) return;
 
-    fetchProfile();
-  }, [token, fetchProfile]);
-
+  fetchProfile();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [token]);
 
 
   // creating profile
