@@ -1,10 +1,10 @@
 import axios from "axios";
 
-const API_URL = process.env.REACT_APP_API_URL;
+
 
 // axios instance
 export const api = axios.create({
-  baseURL: API_URL
+  baseURL: "https://goniza-chat-app-hnvc.vercel.app/api"
 });
 
 // attaching token automatically
