@@ -4,7 +4,7 @@ import axios from "axios";
 
 // axios instance
 export const api = axios.create({
-  baseURL: "https://goniza-chat-app-hnvc.vercel.app/api"
+  baseURL: "https://goniza-chat-app.onrender.com/api"
 });
 
 // attaching token automatically
