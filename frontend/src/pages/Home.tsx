@@ -274,6 +274,8 @@ const Home = () => {
         body: messageInput
       });
 
+
+
       setMessageInput("");
     } catch {
       setSnackbarMessage("Failed to send message");
@@ -296,7 +298,12 @@ const Home = () => {
     <>
       <Navbar />
 
-      <Box display="flex" minHeight="calc(100vh - 64px)">
+      <Box
+        display="flex"
+        sx={{
+          height: "calc(100vh - 64px)"
+        }}
+      >
         {/* Sidebar */}
         <Box width={300}>
           <Card
@@ -591,7 +598,7 @@ const Home = () => {
         <Box flex={1}>
           <Card
             sx={{
-              height: "calc(100vh - 64px)",
+              height: "100%",
               display: "flex",
               flexDirection: "column"
             }}
@@ -705,8 +712,11 @@ const Home = () => {
             >
               {messages.map((msg) => {
 
-                const senderId = msg.senderId?.toString();
-                const isSender = senderId === loggedUserId;
+                console.log("Message sender:", msg.senderId);
+                console.log("Logged user:", loggedUserId);
+
+                const isSender =
+                  String(msg.senderId) === String(loggedUserId);
 
                 return (
                   <Box
@@ -723,9 +733,10 @@ const Home = () => {
                         px: 2,
                         py: 1,
                         borderRadius: 2,
-                        maxWidth: "60%",
-                        backgroundColor: isSender ? "#1976d2" : "#e0e0e0",
-                        color: isSender ? "white" : "black"
+                        maxWidth: "65%",
+                        wordBreak: "break-word",
+                        backgroundColor: isSender ? "#1976d2" : "#f1f3f5",
+                        color: isSender ? "white" : "#222"
                       }}
                     >
 
