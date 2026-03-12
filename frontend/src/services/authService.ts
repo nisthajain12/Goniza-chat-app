@@ -1,15 +1,14 @@
 import axios from "axios";
 
-
-
 // axios instance
 export const api = axios.create({
-  baseURL: "https://goniza-chat-app.onrender.com/api"
+  baseURL: process.env.REACT_APP_API_URL
 });
 
 // attaching token automatically
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("token");
+
+  const token = sessionStorage.getItem("token");
 
   if (token && config.headers) {
     config.headers.Authorization = `Bearer ${token}`;

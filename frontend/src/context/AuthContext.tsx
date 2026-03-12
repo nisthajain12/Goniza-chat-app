@@ -12,19 +12,19 @@ export type AuthContextType = {
 
 export const AuthContext = createContext<AuthContextType>({
   token: null,
-  setToken: () => {},
+  setToken: () => { },
   profileComplete: false,
-  setProfileComplete: () => {},
+  setProfileComplete: () => { },
 
   user: null,
-  setUser: () => {}
+  setUser: () => { }
 });
 
 export const AuthProvider = ({ children }: any) => {
 
   // loading token from localStorage
   const [token, setTokenState] = useState<string | null>(
-    localStorage.getItem("token")
+    sessionStorage.getItem("token")
   );
 
   const [profileComplete, setProfileComplete] = useState(false);
@@ -34,15 +34,15 @@ export const AuthProvider = ({ children }: any) => {
   // storing token in localStorage
   const setToken = (newToken: string | null) => {
     if (newToken) {
-      localStorage.setItem("token", newToken);
+      sessionStorage.setItem("token", newToken);
     } else {
-      localStorage.removeItem("token");
+      sessionStorage.removeItem("token");
     }
 
     setTokenState(newToken);
   };
 
-  // ✅ NEW — Fetch profile when token exists
+  //Fetch profile when token exists
   useEffect(() => {
     const fetchProfile = async () => {
       if (!token) {
@@ -51,14 +51,14 @@ export const AuthProvider = ({ children }: any) => {
       }
 
       try {
-        const res = await fetch("http://localhost:5000/api/profile/me", {
+        const res = await fetch(`${process.env.REACT_APP_API_URL}/profile/me`, {
           headers: {
             Authorization: `Bearer ${token}`
           }
         });
 
         const data = await res.json();
-console.log("PROFILE DATA:", data);
+        console.log("PROFILE DATA:", data);
 
         if (data.profile) {
           setUser(data.profile);
@@ -83,7 +83,7 @@ console.log("PROFILE DATA:", data);
         profileComplete,
         setProfileComplete,
 
-        // ✅ NEW
+        //NEW
         user,
         setUser
       }}

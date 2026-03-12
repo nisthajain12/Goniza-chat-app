@@ -1,3 +1,3 @@
 import { io } from "socket.io-client";
 
-export const socket = io("https://goniza-chat-app.onrender.com");
+export const socket = io(process.env.REACT_APP_SOCKET_URL as string);
