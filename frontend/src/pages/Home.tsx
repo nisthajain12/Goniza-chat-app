@@ -568,27 +568,42 @@ const Home = () => {
                       </Typography>
                     ) : (
                       <List>
-                        {rooms.map((room) => (
-                          <ListItemButton
-                            key={room._id}
-                            selected={selectedRoom?._id === room._id}
-                            onClick={() => handleRoomClick(room)}
-                            sx={{
-                              borderRadius: 2,
-                              mx: 1,
-                              my: 0.5,
-                              transition: "0.2s",
-                              "&.Mui-selected": {
-                                backgroundColor: "#e3f2fd"
-                              }
-                            }}
-                          >
-                            <ListItemText
-                              primary={room.displayName}
-                            />
-                          </ListItemButton>
-                        ))}
-                      </List>
+  {rooms.map((room) => (
+    <ListItemButton
+      key={room._id}
+      selected={selectedRoom?._id === room._id}
+      onClick={() => handleRoomClick(room)}
+      sx={{
+        borderRadius: 2,
+        mx: 1,
+        my: 0.5,
+        transition: "0.2s",
+        "&.Mui-selected": {
+          backgroundColor: "#e3f2fd"
+        }
+      }}
+    >
+      <ListItemAvatar>
+        <Avatar
+          src={room.photo || undefined}
+          sx={{
+            bgcolor: room.photo
+              ? undefined
+              : room.displayName
+              ? getInitials(room.displayName)
+              : "#1976d2",
+            fontWeight: 600
+          }}
+        >
+          {!room.photo && getInitials(room.displayName)}
+        </Avatar>
+      </ListItemAvatar>
+
+      <ListItemText primary={room.displayName} />
+
+    </ListItemButton>
+  ))}
+</List>
                     ))}
                 </Box>
               </>
