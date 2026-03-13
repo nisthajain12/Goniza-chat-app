@@ -10,6 +10,8 @@ import {
   Snackbar,
   Alert
 } from "@mui/material";
+import { Skeleton } from "@mui/material";
+
 
 import { useEffect, useState, useContext } from "react";
 import Navbar from "../components/Navbar";
@@ -42,12 +44,15 @@ const ProfileDetails = () => {
 
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMsg, setSnackbarMsg] = useState("");
+  const [loading, setLoading] = useState(true);
   const [snackbarType, setSnackbarType] =
     useState<"success" | "error">("success");
+
 
   const fetchProfile = async () => {
     try {
 
+      setLoading(true);
       const res = await api.get("/profile/me");
 
       if (!res.data.profile) {
@@ -74,6 +79,9 @@ const ProfileDetails = () => {
       setEditMode(true);
       setProfileComplete(false);
     }
+    finally {
+  setLoading(false);
+}
   };
   // fetching profile on load
   useEffect(() => {
@@ -146,6 +154,57 @@ const ProfileDetails = () => {
     }
     return `hsl(${hash % 360}, 70%, 50%)`;
   };
+
+  if (loading) {
+  return (
+    <>
+      <Navbar />
+
+      <Container maxWidth="sm">
+        <Box mt={4}>
+          <Card elevation={5}>
+            <CardContent>
+
+              <Box
+                display="flex"
+                flexDirection="column"
+                alignItems="center"
+                gap={2}
+              >
+                <Skeleton
+                  variant="circular"
+                  width={100}
+                  height={100}
+                />
+
+                <Skeleton
+                  variant="text"
+                  width={180}
+                  height={40}
+                />
+
+                <Box width="100%" mt={2}>
+                  <Skeleton height={40} />
+                  <Skeleton height={40} />
+                  <Skeleton height={40} />
+                  <Skeleton height={40} />
+                </Box>
+
+                <Skeleton
+                  variant="rectangular"
+                  width="100%"
+                  height={40}
+                />
+
+              </Box>
+
+            </CardContent>
+          </Card>
+        </Box>
+      </Container>
+    </>
+  );
+}
 
   return (
     <>

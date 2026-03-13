@@ -118,21 +118,23 @@ const Home = () => {
 
   useEffect(() => {
 
-    socket.off("receive_message");
+  socket.off("receive_message");
 
-    socket.on("receive_message", (message) => {
+  socket.on("receive_message", (message) => {
 
-      const formattedMessage = {
-        ...message,
-        senderId: message.senderId?.toString(),
-        senderName: message.senderName || user?.name
-      };
+    if (message.roomId !== selectedRoom?._id) return;
 
-      setMessages((prev) => [...prev, formattedMessage]);
+    const formattedMessage = {
+      ...message,
+      senderId: message.senderId?.toString(),
+      senderName: message.senderName || user?.name
+    };
 
-    });
+    setMessages((prev) => [...prev, formattedMessage]);
 
-  }, [user]);
+  });
+
+}, [user, selectedRoom]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
