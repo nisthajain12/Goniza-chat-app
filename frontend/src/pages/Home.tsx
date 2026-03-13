@@ -118,23 +118,23 @@ const Home = () => {
 
   useEffect(() => {
 
-  socket.off("receive_message");
+    socket.off("receive_message");
 
-  socket.on("receive_message", (message) => {
+    socket.on("receive_message", (message) => {
 
-    if (message.roomId !== selectedRoom?._id) return;
+      if (message.roomId !== selectedRoom?._id) return;
 
-    const formattedMessage = {
-      ...message,
-      senderId: message.senderId?.toString(),
-      senderName: message.senderName || user?.name
-    };
+      const formattedMessage = {
+        ...message,
+        senderId: message.senderId?.toString(),
+        senderName: message.senderName || user?.name
+      };
 
-    setMessages((prev) => [...prev, formattedMessage]);
+      setMessages((prev) => [...prev, formattedMessage]);
 
-  });
+    });
 
-}, [user, selectedRoom]);
+  }, [user, selectedRoom]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -779,6 +779,12 @@ const Home = () => {
                   placeholder="Type a message..."
                   value={messageInput}
                   onChange={(e) => setMessageInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      handleSendMessage();
+                    }
+                  }}
                 />
                 <IconButton>
                   <AttachFileIcon />
