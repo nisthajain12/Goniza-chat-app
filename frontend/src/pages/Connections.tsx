@@ -78,6 +78,7 @@ const Connections = () => {
       );
     }
 
+
     return (
       <List>
         {data.map((user) => (
@@ -127,6 +128,16 @@ const Connections = () => {
       </List>
     );
   };
+  const getLastWeekConnections = () => {
+    const oneWeekAgo = new Date();
+    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+
+    return connections.filter((conn) => {
+      const createdAt = new Date(conn.createdAt);
+      return createdAt >= oneWeekAgo;
+    }).length;
+  };
+
 
   return (
     <>
@@ -242,7 +253,7 @@ const Connections = () => {
                   fontWeight="bold"
                   color="green"
                 >
-                  +1
+                  {getLastWeekConnections() > 0 ? `+${getLastWeekConnections()}` : 0}
                 </Typography>
               </Box>
             </Box>
