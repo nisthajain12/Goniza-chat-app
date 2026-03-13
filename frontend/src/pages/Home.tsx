@@ -78,18 +78,22 @@ const Home = () => {
     }
 
     const fetchUsers = async () => {
-      try {
-        const res = await api.get(
-          `/profile/search?query=${search}`
-        );
-        setSearchResults(res.data);
-      } catch {
-        setSearchResults([]);
-      }
-    };
+  try {
+    const res = await api.get(`/profile/search?query=${search}`);
+
+    const filteredUsers = res.data.filter(
+      (u: any) => u.user !== user?.user
+    );
+
+    setSearchResults(filteredUsers);
+
+  } catch {
+    setSearchResults([]);
+  }
+};
 
     fetchUsers();
-  }, [search]);
+  }, [search, user]);
 
   useEffect(() => {
     if (!token) return;
