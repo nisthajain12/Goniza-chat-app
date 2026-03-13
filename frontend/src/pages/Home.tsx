@@ -72,28 +72,32 @@ const Home = () => {
   console.log("AuthContext user:", user);
 
   useEffect(() => {
-    if (!search.trim()) {
+
+  if (search.trim().length < 3) {
+    setSearchResults([]);
+    return;
+  }
+
+  const delayDebounce = setTimeout(async () => {
+    try {
+
+      const res = await api.get(`/profile/search?query=${search}`);
+
+      const filteredUsers = res.data.filter(
+        (u: any) => u.user !== user?.user
+      );
+
+      setSearchResults(filteredUsers);
+
+    } catch {
       setSearchResults([]);
-      return;
     }
 
-    const fetchUsers = async () => {
-  try {
-    const res = await api.get(`/profile/search?query=${search}`);
+  }, 300); // debounce delay
 
-    const filteredUsers = res.data.filter(
-      (u: any) => u.user !== user?.user
-    );
+  return () => clearTimeout(delayDebounce);
 
-    setSearchResults(filteredUsers);
-
-  } catch {
-    setSearchResults([]);
-  }
-};
-
-    fetchUsers();
-  }, [search, user]);
+}, [search, user]);
 
   useEffect(() => {
     if (!token) return;
